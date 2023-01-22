@@ -1,0 +1,11 @@
+# virtual environment and checkpoints
+venv/
+.ipynb_checkpoints/
+
+# latex files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz

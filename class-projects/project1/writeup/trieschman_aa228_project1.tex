@@ -1,0 +1,93 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage{aa228-jmlr2e}
+\usepackage{lipsum}
+\usepackage{listings}
+
+\input{julia_listing}
+
+\begin{document}
+
+% Refer to this link for project rubric: https://web.stanford.edu/class/aa228/cgi-bin/wp/project-1/
+\title{Project 1: Bayesian Structure Learning}
+
+%===========================================
+%===========================================
+\name{Erich Trieschman}
+\email{etriesch@stanford.edu}
+
+
+\maketitle
+
+
+\section{Algorithm Description}
+%===========================================
+% TODO: Replace this with a short description of your algorithm(s) used.
+\lipsum[2]
+%===========================================
+
+
+
+\section{Graphs}
+%===========================================
+% TODO: Add your small, medium, and large graph visualizations here
+%===========================================
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{example_graph.pdf}
+    \caption{Graph caption.}
+\end{figure}
+
+
+
+\section{Code}
+%===========================================
+% TODO: Add your code here, see code listing options here: https://www.overleaf.com/learn/latex/code_listing
+% NOTE: Code does not count towards your page limit!
+% OPTIONS:
+%   1. Paste everything into a {verbatim} environment (where all characters are parsed...verbatim).
+%   or 2. paste everything into a {lstlisting} environment for syntax highlighting (examples for Julia and Python below).
+% NOTE: Feel free to break up functions into separate {algorithm} + {lstlisting} environments for better organization (not required!) 
+%===========================================
+
+
+%===========================================
+% EXAMPLE PYTHON, TODO REPLACE WITH YOUR CODE:
+%===========================================
+\begin{algorithm}
+\begin{lstlisting}[language=Python]
+import sys
+
+import networkx
+
+
+def write_gph(dag, idx2names, filename):
+    with open(filename, 'w') as f:
+        for edge in dag.edges():
+            f.write("{}, {}\n".format(idx2names[edge[0]], idx2names[edge[1]]))
+
+
+def compute(infile, outfile):
+    # WRITE YOUR CODE HERE
+    # FEEL FREE TO CHANGE ANYTHING ANYWHERE IN THE CODE
+    # THIS INCLUDES CHANGING THE FUNCTION NAMES, MAKING THE CODE MODULAR, BASICALLY ANYTHING
+    pass
+
+
+def main():
+    if len(sys.argv) != 3:
+        raise Exception("usage: python project1.py <infile>.csv <outfile>.gph")
+
+    inputfilename = sys.argv[1]
+    outputfilename = sys.argv[2]
+    compute(inputfilename, outputfilename)
+
+
+if __name__ == '__main__':
+    main()
+
+\end{lstlisting}
+\end{algorithm}
+
+
+\end{document}
