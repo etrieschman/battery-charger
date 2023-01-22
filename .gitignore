@@ -1,6 +1,7 @@
 # virtual environment and checkpoints
 venv/
 .ipynb_checkpoints/
+.DS_Store
 
 # latex files
 *.aux
