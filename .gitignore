@@ -1,3 +1,6 @@
+# data folder
+data/*
+
 # virtual environment and checkpoints
 venv/
 .ipynb_checkpoints/
