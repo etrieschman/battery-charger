@@ -13,6 +13,11 @@ PATH_DATA = PATH_HOME + '/data/'
 
 # define caiso engine
 CAISO = gridstatus.CAISO()
+# define nodes
+trading_nodes = CAISO.trading_hub_locations[0:2]
+moss_node = 'MOSSLDB_2_B1'
+kern_node = 'SANDLOT_2_N022' 
+NODES = trading_nodes + [moss_node, kern_node]
 
 def make_scrape_profile():
     # set up a profile to access website
@@ -46,10 +51,14 @@ def download_caiso_lmp(years:list, node:str, market:str,  sleep=5):
             # save chunk            
             caiso_month.to_csv(f'{path_node}{market.lower()}_y{y}m{m}.csv', index=False)
 
-def readin_caiso_lmp(market:str):
+def readin_caiso_lmp(market:str, nodes=None):
     data = pd.DataFrame([])
-    # get nodes
-    nodes = [d for d in os.listdir(PATH_DATA) if d.startswith('caiso')]
+    # get nodes; if none provided, pull all data
+    if nodes is None:
+        nodes = [d for d in os.listdir(PATH_DATA) if d.startswith('caiso')]
+    else:
+         nodes = ['caiso_' + n.lower() for n in nodes]
+    print(nodes)
     for n in tqdm(nodes):
         files = [f for f in os.listdir(PATH_DATA + n) if f.startswith(market.lower())]
         for f in files:
@@ -60,8 +69,9 @@ def readin_caiso_lmp(market:str):
     data = data.sort_values(['location', 'time']).reset_index(drop=True)
     data.loc[:,'datetime'] = pd.to_datetime(data.time.str.slice(0, 19), format='%Y-%m-%d %H:%M:%S')
     data = data.drop(columns='time')
+    data.loc[:, 'day'] = data.datetime.dt.day
     data.loc[:, 'month'] = data.datetime.dt.month
     data.loc[:, 'year'] = data.datetime.dt.year
-    data.loc[:, 'week'] = data.datetime.dt.week
+    data.loc[:, 'week'] = data.datetime.dt.isocalendar().week
 
     return data

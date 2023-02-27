@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from battery_utils import get_optimal_battery_schedule, get_rt_efficiency
+from battery_utils import get_optimal_battery_schedule, get_efficiency
 
 def set_plt_settings():
     plt.rcParams.update({'font.size': 14})
@@ -19,12 +19,8 @@ def set_plt_settings():
 
 def plot_optimal_performance(p, dt_start, duration, capacity, use_efficiency=True):
     t = len(p)
-    e, c, d, rev = get_optimal_battery_schedule(p, duration=duration, charge_capacity=capacity, use_efficiency=use_efficiency)
+    e, c, d, revenue = get_optimal_battery_schedule(p, duration=duration, charge_capacity=capacity, use_efficiency=use_efficiency)
     schedule = c - d
-    if use_efficiency:
-        revenue = np.cumsum(p*(get_rt_efficiency(duration)*d/4 - c/4))
-    else:
-        revenue = np.cumsum(p*(d/4 - c/4))
 
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(15, 10), sharex=True)
     ax1r = ax[1].twinx()
@@ -48,12 +44,9 @@ def plot_optimal_rev_by_duration(p, dt_start, durations, capacity, use_efficienc
     ax1 = ax0.twinx()
     ax1.plot(np.arange(t)/4, p, color='grey', alpha=0.15)
     for dur in durations:
-        __, c, d, __ = get_optimal_battery_schedule(p, duration=dur, charge_capacity=capacity, 
+        __, c, d, revenue = get_optimal_battery_schedule(p, duration=dur, charge_capacity=capacity, 
                                                     use_efficiency=use_efficiency)
-        if use_efficiency:
-            revenue = np.cumsum(p*(get_rt_efficiency(dur)*d/4 - c/4))
-        else:
-            revenue = np.cumsum(p*(d/4 - c/4))
+
         ax0.plot(np.arange(t)/4, revenue, alpha=0.75, label=f'{dur}hrs')
 
     ax0.set_title(f'{int(t/4)}-hr / {int(t/4/24)}-day / {np.round(t/4/24/365, 1)}-yr optimization, by duration\n' + 
