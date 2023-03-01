@@ -69,6 +69,7 @@ def readin_caiso_lmp(market:str, nodes=None):
     data = data.sort_values(['location', 'time']).reset_index(drop=True)
     data.loc[:,'datetime'] = pd.to_datetime(data.time.str.slice(0, 19), format='%Y-%m-%d %H:%M:%S')
     data = data.drop(columns='time')
+    data.loc[:, 'time'] = data.datetime.dt.time
     data.loc[:, 'day'] = data.datetime.dt.day
     data.loc[:, 'month'] = data.datetime.dt.month
     data.loc[:, 'year'] = data.datetime.dt.year

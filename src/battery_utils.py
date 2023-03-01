@@ -1,5 +1,6 @@
 import numpy as np
 import cvxpy as cp
+import datetime as dt
 
 def get_efficiency(duration):
     if duration < 12:
@@ -42,7 +43,7 @@ def get_optimal_battery_schedule(px:np.array, duration:int, charge_capacity:int,
 def get_limited_optimal_battery_schedule(days_foresight:float, px:np.array, duration:int, 
                                          charge_capacity:int, storage_start=0., use_efficiency=True):
     window_len = 4*24*days_foresight
-    periods = int(len(px)/window_len)
+    periods = int(np.ceil(len(px)/window_len))
 
     rev_last = 0
     e_last = 0
@@ -64,3 +65,35 @@ def get_limited_optimal_battery_schedule(days_foresight:float, px:np.array, dura
         c_optlim, d_optlim = np.concatenate([c_optlim, c]), np.concatenate([d_optlim, d])
     
     return e_optlim, c_optlim, d_optlim, revenue_optlim
+
+
+def get_naive_battery_schedule(p, time, duration, charge_capacity, use_efficiency=True):
+    if use_efficiency:
+        efficiency = get_efficiency(duration)
+    else:
+        efficiency = 1
+    
+    # make charge/discharge schedule
+    charge_mask = (
+        ((time >= dt.time(2, 0)) & (time < dt.time(4, 0))) | 
+        ((time >= dt.time(11,0)) & (time < dt.time(15,0))))
+    discharge_mask = (
+        (time >= dt.time(8, 0)) & (time < dt.time(10, 0)) | 
+        ((time >= dt.time(17,0)) & (time < dt.time(21,0))))
+    
+    c_sched = np.zeros(len(time))
+    c_sched[charge_mask] = 1*charge_capacity/4
+    c_sched[discharge_mask] = -1*charge_capacity/4
+    
+    # define energy
+    e = np.zeros(len(p))
+    for i in range(1, len(p)):
+        e[i] = np.minimum(duration*charge_capacity, np.maximum(0, e[i-1] + c_sched[i-1]))
+        
+    # calculate revenue
+    d = -1*np.minimum(0, e[1:] - e[:-1])
+    c = np.maximum(0, e[1:] - e[:-1])
+    revenue = p[:-1] * (d*efficiency - c/efficiency)
+    revenue_cum = np.cumsum(revenue)
+    
+    return e, c, d, revenue_cum
