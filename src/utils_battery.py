@@ -9,6 +9,9 @@ def get_efficiency(duration):
         return 0.86
     return 0.70
 
+def discretize_e_states(b_params):
+    return np.linspace(0, b_params['dur']*b_params['capacity'], b_params['dur']*4+1)
+
 
 def get_optimal_battery_schedule(px:np.array, duration:int, charge_capacity:int, storage_start=0., use_efficiency=True):
     t = len(px)
@@ -18,8 +21,6 @@ def get_optimal_battery_schedule(px:np.array, duration:int, charge_capacity:int,
     else:
         efficiency = 1
 
-    
-    
     # variables
     c = cp.Variable(t) # charging at time t
     d = cp.Variable(t) # dischargint at time t

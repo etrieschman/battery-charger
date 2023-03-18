@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from battery_utils import get_optimal_battery_schedule, get_efficiency
+from utils_battery import get_optimal_battery_schedule, get_efficiency
+from utils_data import NODES
+import statsmodels.api as sm
 
 def set_plt_settings():
     plt.rcParams.update({'font.size': 14})
@@ -55,4 +57,29 @@ def plot_optimal_rev_by_duration(p, dt_start, durations, capacity, use_efficienc
     ax0.set_xlabel(f'hours since {dt_start}')
     ax1.set_ylabel('Price ($/MWh)')
     ax0.legend()
+    plt.show()
+    
+    
+def plot_ts_model(tmodel, X, y, node=NODES[0], t=1000):# get plot data
+    ypred_val = tmodel.predict(X).values
+    acorr = sm.tsa.acf(y - ypred_val)
+    n_mask = X.loc[:, f'node_{node.upper()}'] == 1
+
+    # look at autocorrelation
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
+    ax[0].plot(acorr)
+    ax[1].scatter(y, y - ypred_val, alpha=0.5)
+
+    ax[2].plot(np.arange(t)/4/24, y[n_mask][:t], alpha=0.5, label='true')
+    ax[2].plot(np.arange(t)/4/24, ypred_val[n_mask][:t], alpha=0.5, label='pred')
+
+    ax[0].set_title('Autocorrelation of errors')
+    ax[1].set_title('Errors against price')
+    ax[2].set_title(f'Actual and predicted RT prices')
+    ax[1].set_ylabel('prediction errors')
+    ax[1].set_xlabel('price ($/MW)')
+    ax[2].set_xlabel('days in 2022')
+    ax[2].set_ylabel('price ($/MW)')
+    ax[2].legend()
+
     plt.show()

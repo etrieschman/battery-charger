@@ -1,10 +1,10 @@
-
 import numpy as np
 import pandas as pd
 import isodata
 import gridstatus
 import urllib
 from tqdm import tqdm
+import datetime as dt
 import os
 
 # define file locations
@@ -35,7 +35,7 @@ def download_caiso_lmp(years:list, node:str, market:str,  sleep=5):
     
     # read and save data in chunks
     for y in years:
-        for m in tqdm(range(1,12+1), desc=str(y)):
+        for m in tqdm(range(1,12+1), desc=f'{node}: {y}'):
             # define start/ end dates
             dt_start = f'{m}/1/{y}'
             if m == 12:
@@ -70,9 +70,49 @@ def readin_caiso_lmp(market:str, nodes=None):
     data.loc[:,'datetime'] = pd.to_datetime(data.time.str.slice(0, 19), format='%Y-%m-%d %H:%M:%S')
     data = data.drop(columns='time')
     data.loc[:, 'time'] = data.datetime.dt.time
+    data.loc[:, 'hour'] = data.datetime.dt.hour
     data.loc[:, 'day'] = data.datetime.dt.day
     data.loc[:, 'month'] = data.datetime.dt.month
+    data.loc[:, 'quarter'] = data.datetime.dt.quarter
     data.loc[:, 'year'] = data.datetime.dt.year
-    data.loc[:, 'week'] = data.datetime.dt.isocalendar().week
+    # data.loc[:, 'week'] = data.datetime.dt.isocalendar().week
 
     return data
+
+
+def make_analysis_dataset(nodes, verbose=False):
+    # read in realtime
+    rt = readin_caiso_lmp(market='REAL_TIME_15_MIN', nodes=nodes)
+    rt = rt.drop(columns=['location type', 'market'])
+    rt = rt.groupby(['location', 'datetime', 'time', 'hour', 'day', 'month', 'quarter', 'year']).mean().reset_index()
+
+    # read in dayahead
+    da = readin_caiso_lmp(market='DAY_AHEAD_HOURLY', nodes=nodes)
+    da = da.drop(columns=['location type', 'market', 'time', 'datetime'])
+    da = da.groupby(['location', 'hour', 'day', 'month', 'quarter', 'year']).mean().reset_index()
+
+    # merge
+    df = pd.merge(left=rt, right=da, how='left', on=['location', 'year', 'quarter', 'month', 'day', 'hour'], 
+                  suffixes=['_rt', '_da']).drop_duplicates()
+    if verbose:
+        print('Merging...')
+        print('\trt shape\t', rt.shape)
+        print('\tda shape\t', da.shape)
+        print('\tmerge shape\t', df.shape)
+        
+    # add features
+    df.loc[:, 'weekday'] = (df.datetime.dt.weekday < 5) * 1.0
+    df.loc[:, 'peak'] = ((df.time >= dt.time(8, 0)) & (df.time < dt.time(10, 0)) | 
+                        ((df.time >= dt.time(17,0)) & (df.time < dt.time(21,0)))) * 1
+    df['lmp_rt_m1'] = df.groupby(['location'])['lmp_rt'].shift(1)
+    df['lmp_rt_m2'] = df.groupby(['location'])['lmp_rt'].shift(2)
+
+    # one hot encode location variable
+    for n in df.location.unique():
+        df[f'node_{n}'] = np.where(df.location == n, 1, 0)
+
+    # drop missing values created by shifting y
+    keep_mask = (~df.isna().any(axis=1).values)
+    df_cln = df[keep_mask]
+    
+    return df_cln   
