@@ -4,7 +4,8 @@ import statsmodels.api as sm
 from tqdm import tqdm
 from sklearn.model_selection import LeavePGroupsOut
 
-from utils_mdp import train_valueit_model, test_valueit_model
+from utils_mdp_m import train_valueit_model, test_valueit_model
+from utils_mdp_mf import train_Q, validate_Q, Q_ITERS, Q_CHUNKSIZE
 
 
 def train_test_split(df, X_cols, y_col, group_cols, yr_val=2022):
@@ -18,7 +19,35 @@ def train_test_split(df, X_cols, y_col, group_cols, yr_val=2022):
     return X_tt, y_tt, groups_tt, X_val, y_val
 
 
-def crossval_model(X, y, groups, hp_weights, b_params, S=100, kmax=200, yr_val=2022, desc='cv'):
+def crossval_Q(states, y, groups, b_params, hp_Q, hp_R, verbose=False, q_iters=Q_ITERS, q_chunksize=Q_CHUNKSIZE):
+    s_e, s_h, s_dow, s_rt = states
+    cvsum = {'cumrev':[], 'cumrew':[], 'mean_storage':[], 'downtime':[]}
+    
+    tt_lpgo_splitter = LeavePGroupsOut(n_groups=1)
+    splits = list(tt_lpgo_splitter.split(y, groups=groups))
+    for train_idx, test_idx in tqdm(splits, disable=not verbose):
+
+        # get states
+        train_states = s_e, s_h[train_idx], s_dow[train_idx], s_rt[train_idx]
+        test_states = s_e, s_h[test_idx], s_dow[test_idx], s_rt[test_idx]
+
+        # train/test
+        Q, __, __ = train_Q(train_states, y[train_idx], b_params, hp_Q, hp_R, q_iters, q_chunksize, False)
+        ace, revrew = validate_Q(Q, test_states, y[test_idx], b_params, hp_R, False)
+
+        # record
+        cvsum['cumrev'] += [revrew[0].sum()]
+        cvsum['cumrew'] += [revrew[1].sum()]
+        cvsum['mean_storage'] += [ace[2].mean()]
+        cvsum['downtime'] += [(ace[0] == 0).mean()]
+
+    return cvsum
+
+
+# OLD
+
+
+def crossval_VI(X, Xvi_cols, y, groups, hp_weights, b_params, R, S=None, kmax=200, yr_val=2022, desc='cv'):
     # split into train and test data
     tt_lpgo_splitter = LeavePGroupsOut(n_groups=1)
     splits = list(tt_lpgo_splitter.split(X, y, groups))
@@ -30,13 +59,13 @@ def crossval_model(X, y, groups, hp_weights, b_params, S=100, kmax=200, yr_val=2
     # cross validate
     for train_idx, test_idx in tqdm(splits, desc=desc):
         Utheta, __ = train_valueit_model(
-            X.iloc[train_idx], y[train_idx], hp_weights, b_params, S, kmax, verbose=False)
+            X[Xvi_cols].iloc[train_idx], y[train_idx], hp_weights, b_params, R, S, kmax, verbose=False)
 
         # test with price forecast
         ymodel = sm.OLS(endog=y[train_idx], exog=X.iloc[train_idx]).fit(disp=0)
         yhat_test = ymodel.predict(X.iloc[test_idx]).values
         ace, revenue = test_valueit_model(
-            X.iloc[test_idx], yhat_test, Utheta, hp_weights, b_params, verbose=False)
+            X[Xvi_cols].iloc[test_idx], y[test_idx], yhat_test, Utheta, hp_weights, b_params, R, verbose=False)
 
         # record
         cvsum['cumrev'] += [revenue.sum()]

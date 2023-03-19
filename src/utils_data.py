@@ -102,14 +102,24 @@ def make_analysis_dataset(nodes, verbose=False):
         
     # add features
     df.loc[:, 'weekday'] = (df.datetime.dt.weekday < 5) * 1.0
+    df.loc[:, 'dow'] = df.datetime.dt.weekday
     df.loc[:, 'peak'] = ((df.time >= dt.time(8, 0)) & (df.time < dt.time(10, 0)) | 
                         ((df.time >= dt.time(17,0)) & (df.time < dt.time(21,0)))) * 1
-    df['lmp_rt_m1'] = df.groupby(['location'])['lmp_rt'].shift(1)
-    df['lmp_rt_m2'] = df.groupby(['location'])['lmp_rt'].shift(2)
+    
+    # lag 2 hours
+    for l in range(1, 4*2,1):
+        df[f'lmp_rt_m{l}'] = df.groupby(['location'])['lmp_rt'].shift(l)
+        df[f'lmp_rt_m{l}_sq'] = df[f'lmp_rt_m{l}']**2
+    # lag 21-24 hours
+    for l in range(21*4, 24*4, 1):
+        df[f'lmp_rt_m{l}'] = df.groupby(['location'])['lmp_rt'].shift(l)
+         
 
     # one hot encode location variable
     for n in df.location.unique():
         df[f'node_{n}'] = np.where(df.location == n, 1, 0)
+    for h in df.hour.unique():
+        df[f'h_{h}'] = np.where(df.hour == h, 1, 0)
 
     # drop missing values created by shifting y
     keep_mask = (~df.isna().any(axis=1).values)

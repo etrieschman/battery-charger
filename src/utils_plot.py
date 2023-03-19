@@ -83,3 +83,17 @@ def plot_ts_model(tmodel, X, y, node=NODES[0], t=1000):# get plot data
     ax[2].legend()
 
     plt.show()
+
+
+def plot_Qval(ace, revrew, y, b_params, yr):
+    __, ax = plt.subplots(nrows=2, figsize=(10, 7))
+    ax1r = ax[1].twinx()
+    ax[0].plot(ace[2]*b_params['capacity']/4, label='energy')
+    ax1r.plot(y, color='grey', alpha=0.2)
+    ax[1].plot(np.cumsum(revrew[0]), label='cumm. revenue', color='green')
+    ax[1].plot(np.cumsum(revrew[1]), label='cumm. reward')
+    ax[0].legend()
+    ax[1].legend()
+    ax[0].set_title(f'Battery operation in {yr}')
+    ax[1].set_title(f'Total revenue={int(revrew[0].sum())}, Total reward={int(revrew[1].sum())}')
+    plt.show()
