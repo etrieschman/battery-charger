@@ -4,19 +4,21 @@ from utils_battery import get_optimal_battery_schedule, get_efficiency
 from utils_data import NODES
 import statsmodels.api as sm
 
+from utils_data import PATH_HOME
+
 def set_plt_settings():
     plt.rcParams.update({'font.size': 14})
-    SMALL_SIZE = 10
-    MEDIUM_SIZE = 14
+    SMALL_SIZE = 8
+    MEDIUM_SIZE = 12
     BIGGER_SIZE = 16
 
     plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-    plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
     plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
     plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
     plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
     plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+    plt.rc('figure', titlesize=MEDIUM_SIZE)  # fontsize of the figure title
 
 
 def plot_optimal_performance(p, dt_start, duration, capacity, use_efficiency=True):
@@ -66,7 +68,7 @@ def plot_ts_model(tmodel, X, y, node=NODES[0], t=1000):# get plot data
     n_mask = X.loc[:, f'node_{node.upper()}'] == 1
 
     # look at autocorrelation
-    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
+    fig, ax = plt.subplots(nrows=3, figsize=(4, 7), constrained_layout=True)
     ax[0].plot(acorr)
     ax[1].scatter(y, y - ypred_val, alpha=0.5)
 
@@ -75,13 +77,16 @@ def plot_ts_model(tmodel, X, y, node=NODES[0], t=1000):# get plot data
 
     ax[0].set_title('Autocorrelation of errors')
     ax[1].set_title('Errors against price')
-    ax[2].set_title(f'Actual and predicted RT prices')
+    ax[2].set_title(f'Actual and pred. prices')
+    ax[0].set_xlabel('lag')
+    ax[0].set_ylabel('autocorrelation')
     ax[1].set_ylabel('prediction errors')
     ax[1].set_xlabel('price ($/MW)')
     ax[2].set_xlabel('days in 2022')
     ax[2].set_ylabel('price ($/MW)')
     ax[2].legend()
 
+    plt.savefig(PATH_HOME + '/results/' + 'timeseries.png', pad_inches=0.5)
     plt.show()
 
 

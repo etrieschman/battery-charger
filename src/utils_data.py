@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import isodata
 import gridstatus
 import urllib
 from tqdm import tqdm
@@ -58,8 +57,7 @@ def readin_caiso_lmp(market:str, nodes=None):
         nodes = [d for d in os.listdir(PATH_DATA) if d.startswith('caiso')]
     else:
          nodes = ['caiso_' + n.lower() for n in nodes]
-    print(nodes)
-    for n in tqdm(nodes):
+    for n in tqdm(nodes, disable=True):
         files = [f for f in os.listdir(PATH_DATA + n) if f.startswith(market.lower())]
         for f in files:
             d = pd.read_csv(PATH_DATA + n + f'/{f}')

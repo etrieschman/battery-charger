@@ -8,28 +8,30 @@ from utils_mdp_m import train_valueit_model, test_valueit_model
 from utils_mdp_mf import train_Q, validate_Q, Q_ITERS, Q_CHUNKSIZE
 
 
-def train_test_split(df, X_cols, y_col, group_cols, yr_val=2022):
+def train_test_split(df, X_cols, y_col, group_cols=None, yr_val=2021):
     # split data
     idx_val = (df.year == yr_val).values
     X, y = df[X_cols], df[y_col].values
     X_val, y_val = X.loc[idx_val], y[idx_val]
     X_tt, y_tt = X.loc[~idx_val], y[~idx_val]
-    groups_tt = df.loc[~idx_val, group_cols].astype(str).apply(''.join, axis=1).values
+    if group_cols is None:
+        return X_tt, y_tt, X_val, y_val
     
+    groups_tt = df.loc[~idx_val, group_cols].astype(str).apply(''.join, axis=1).values
     return X_tt, y_tt, groups_tt, X_val, y_val
 
 
-def crossval_Q(states, y, groups, b_params, hp_Q, hp_R, verbose=False, q_iters=Q_ITERS, q_chunksize=Q_CHUNKSIZE):
-    s_e, s_h, s_dow, s_rt = states
+def crossval_Q(states, y, groups, b_params, hp_Q, hp_R, verbose=False, q_iters=Q_ITERS, q_chunksize=Q_CHUNKSIZE, n_groups=1):
+    s_e, s_t, s_h, s_dow, s_rt = states
     cvsum = {'cumrev':[], 'cumrew':[], 'mean_storage':[], 'downtime':[]}
     
-    tt_lpgo_splitter = LeavePGroupsOut(n_groups=1)
+    tt_lpgo_splitter = LeavePGroupsOut(n_groups=n_groups)
     splits = list(tt_lpgo_splitter.split(y, groups=groups))
     for train_idx, test_idx in tqdm(splits, disable=not verbose):
 
         # get states
-        train_states = s_e, s_h[train_idx], s_dow[train_idx], s_rt[train_idx]
-        test_states = s_e, s_h[test_idx], s_dow[test_idx], s_rt[test_idx]
+        train_states = s_e, s_t[train_idx], s_h[train_idx], s_dow[train_idx], s_rt[train_idx]
+        test_states = s_e, s_t[test_idx], s_h[test_idx], s_dow[test_idx], s_rt[test_idx]
 
         # train/test
         Q, __, __ = train_Q(train_states, y[train_idx], b_params, hp_Q, hp_R, q_iters, q_chunksize, False)

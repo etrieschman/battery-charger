@@ -3,8 +3,9 @@ import pandas as pd
 import statsmodels.api as sm
 from tqdm import tqdm
 
-from utils_battery import discretize_e_states
 
+def discretize_e_states(b_params):
+    return np.linspace(0, b_params['dur']*b_params['capacity'], b_params['dur']*4+1)
 
 def get_charge(e, a, b_params, return_eff=False):
     if a == 0:

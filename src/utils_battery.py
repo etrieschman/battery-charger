@@ -2,15 +2,15 @@ import numpy as np
 import cvxpy as cp
 import datetime as dt
 
+from utils_mdp_mf import get_Q_hyperparameters, get_discrete_states, train_Q, validate_Q
+from utils_cv import train_test_split
+
 def get_efficiency(duration):
     if duration < 12:
         return 0.925
     if duration < 48:
         return 0.86
     return 0.70
-
-def discretize_e_states(b_params):
-    return np.linspace(0, b_params['dur']*b_params['capacity'], b_params['dur']*4+1)
 
 
 def get_optimal_battery_schedule(px:np.array, duration:int, charge_capacity:int, storage_start=0., use_efficiency=True):
@@ -98,3 +98,28 @@ def get_naive_battery_schedule(p, time, duration, charge_capacity, use_efficienc
     revenue_cum = np.cumsum(revenue)
     
     return e, c, d, revenue_cum
+
+def get_Q_battery_schedule(df, X_cols, y_col, node, duration, hp_override=None):
+    
+    hp_Q, hp_R = get_Q_hyperparameters(node, duration, hp_override)
+    
+    # set battery params
+    b_params = {'dur':duration, 'capacity':200}
+    b_params['efficiency'] = get_efficiency(b_params['dur'])
+    
+    # take out holdout data
+    X_tt, y_tt, X_val, y_val = train_test_split(df, X_cols, y_col, yr_val=2022)
+
+    # discretize space
+    s_e, s_t, s_h, s_dow, (s_rt, rt_q) = get_discrete_states(X_tt, y_tt, b_params, None, 'const', hp_Q['m'])
+    __, s_tv, s_hv, s_dowv, (s_rtv, __) = get_discrete_states(X_val, y_val, b_params, rt_q, 'const', hp_Q['m'])
+
+    # train Q on whole training dataset
+    states = s_e, s_t, s_h, s_dow, s_rt
+    Q, __, __ = train_Q(states, y_tt, b_params, hp_Q, hp_R)
+    
+    # validate on validation data
+    states = s_e, s_tv, s_hv, s_dowv, s_rtv
+    ace, revrew = validate_Q(Q, states, y_val, b_params, hp_R)
+    
+    return ace, revrew

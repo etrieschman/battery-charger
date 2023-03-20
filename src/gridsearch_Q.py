@@ -23,7 +23,7 @@ def gridsearch_Q(node_idx, dur, hp_grid, hp_Q, hp_R, logsuff, yr_val=2022, capac
     # make analysis datasets
     df = make_analysis_dataset(nodes=[NODES[node_idx]])
     # col params
-    X_cols = ['hour', 'dow']
+    X_cols = ['month', 'hour', 'dow']
     y_col = 'lmp_rt'
     group_cols = ['year']
 
@@ -34,9 +34,9 @@ def gridsearch_Q(node_idx, dur, hp_grid, hp_Q, hp_R, logsuff, yr_val=2022, capac
     b_params['efficiency'] = get_efficiency(b_params['dur'])
     
     # discretize data
-    s_e, s_h, s_dow, (s_rt, rt_q) = get_discrete_states(X_tt, y_tt, b_params, None, hp_Q['m'])
-    s_ev, s_hv, s_dowv, (s_rtv, __) = get_discrete_states(X_val, y_val, b_params, rt_q, hp_Q['m'])
-    states = s_e, s_h, s_dow, s_rt
+    s_e, s_t, s_h, s_dow, (s_rt, rt_q) = get_discrete_states(X_tt, y_tt, b_params, None, hp_Q['m'])
+    s_ev, s_tv, s_hv, s_dowv, (s_rtv, __) = get_discrete_states(X_val, y_val, b_params, rt_q, hp_Q['m'])
+    states = s_e, s_t, s_h, s_dow, s_rt
 
     # grid search
     alphaQ, epsQ, pct_revR, pct_maR = hp_grid
@@ -68,14 +68,17 @@ if __name__ == '__main__':
     hp_R = {'alpha':0.9, 'pct_rev':0.5, 'pct_ma':0.5}
 
     # grid
-    alphaQ = [0.1, 0.5]
-    epsQ = [0.3, 0.5, 0.99]
+    alphaQ = [0.1]
+    epsQ = [0.5, 0.99]
     pct_revR = [0.25, 0.5, 0.75]
     pct_maR = [0., 0.5, 1.]
     hp_grid = alphaQ, epsQ, pct_revR, pct_maR
 
-    logsuff = logsuff = dt.now().date().strftime("%Y%m%d")
-    __ = gridsearch_Q(node_idx, 4, hp_grid, hp_Q, hp_R, logsuff)
-    
-    for dur in [4, 6, 100, 12, 14, 48]:
+    logsuff = logsuff = dt.now().date().strftime("%Y%m%d") 
+    durations = [4, 100, 6, 12, 14, 48] 
+    i = 1
+    for node_idx, dur in itertools.product(*[np.arange(4), durations]):
+        print('---------------------------------------------------------------')
+        print(f'{dt.now().strftime("%H:%M:%S")} | {i}/{len(durations)*4}: node={NODES[node_idx]}, duration={dur}')
         __ = gridsearch_Q(node_idx, dur, hp_grid, hp_Q, hp_R, logsuff)
+        i += 1
